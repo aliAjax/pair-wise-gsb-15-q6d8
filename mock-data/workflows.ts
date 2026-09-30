@@ -5,4 +5,18 @@ const standard=(broken=false)=>{
  const edges:FlowEdge[]=[['start','form'],['form','approval'],['approval','condition'],['condition','notify','大于 5,000'],['condition','automation','其他'],['notify','end'],['automation','end']].map((e,i)=>({id:'e'+i,source:e[0],target:e[1],label:e[2]})); return {nodes,edges};
 };
 const names=['差旅费用审批','采购合同审批','员工入职流程','IT 服务请求','用印申请','供应商准入','年度预算调整','客户退款审批','法务审查流程','资产领用审批','营销活动报备','跨区域大型采购及多部门联合审批流程（集团特别管控版）'];
-export const workflows:Workflow[]=names.map((name,i)=>{const graph=i===10?{nodes:[],edges:[]}:standard(i===0||i===3); if(i===8) graph.nodes=graph.nodes.filter(x=>x.type!=='end'); if(i===9) graph.nodes.push(n('orphan','approval',650,390,'孤立审批',{})); const status=i%4===0?'draft':i%5===0?'archived':'published'; const oldNodes=graph.nodes.filter(x=>x.id!=='notify').map(x=>({...x,data:{...x.data}})); return {id:'wf-'+(i+1),name,domain:['财务','采购','人力资源','IT服务','法务'][i%5],status,version:i%3+1,editor:['林秋','陈默','周礼','王宁'][i%4],updatedAt:`2026-07-${String(10-i%9).padStart(2,'0')} ${9+i%8}:20`,publishedAt:status==='published'?'2026-07-08 14:30':undefined,abnormalCount:i===7?0:i%4,nodes:graph.nodes,edges:graph.edges,versions:[{version:1,createdAt:'2026-06-12 10:00',note:'初始化流程结构',nodes:oldNodes,edges:graph.edges.filter(e=>e.source!=='notify'&&e.target!=='notify')},{version:2,createdAt:'2026-07-01 16:20',note:'增加金额分支与通知节点',nodes:graph.nodes,edges:graph.edges}]};});
+export const workflows:Workflow[]=names.map((name,i)=>{
+ const graph=i===10?{nodes:[],edges:[]}:standard(i===0||i===3);
+ if(i===8) graph.nodes=graph.nodes.filter(x=>x.type!=='end');
+ if(i===9) graph.nodes.push(n('orphan','approval',650,390,'孤立审批',{}));
+ const status=i%4===0?'draft':i%5===0?'archived':'published';
+ const version=i%3+1;
+ const oldNodes=graph.nodes.filter(x=>x.id!=='notify').map(x=>({...x,data:{...x.data}}));
+ const oldEdges=graph.edges.filter(e=>e.source!=='notify'&&e.target!=='notify');
+ const versions=[
+  {version:1,createdAt:'2026-06-12 10:00',note:'初始化流程结构',nodes:oldNodes,edges:oldEdges,publishedBy:'林秋'},
+  {version:2,createdAt:'2026-07-01 16:20',note:'增加金额分支与通知节点',nodes:graph.nodes,edges:graph.edges,publishedBy:'林秋'},
+  ...(version===3?[{version:3,createdAt:'2026-07-05 11:05',note:'优化高额分支审批说明',nodes:graph.nodes.map(x=>x.id==='approval'?{...x,data:{...x.data,config:{...x.data.config,instruction:'高额申请需补充预算归属说明'}}}:x),edges:graph.edges,publishedBy:'陈默'}]:[])
+ ];
+ return {id:'wf-'+(i+1),name,domain:['财务','采购','人力资源','IT服务','法务'][i%5],status,version,revision:version,draftBaseRevision:version,editor:['林秋','陈默','周礼','王宁'][i%4],updatedAt:`2026-07-${String(10-i%9).padStart(2,'0')} ${9+i%8}:20`,publishedAt:status==='published'?'2026-07-08 14:30':undefined,abnormalCount:i===7?0:i%4,nodes:graph.nodes,edges:graph.edges,versions};
+});
